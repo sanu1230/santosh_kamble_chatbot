@@ -1,4 +1,4 @@
-HLD(HIGH LEVEL DESIGN)
+HLD AssistBot
 
 PRODUCT : AssistBot (A ‘personal loan customer service chatbot’ that provides customer service along with recommending suitable products & does upselling)
 BOT’S OVERALL GOAL:

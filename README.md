@@ -10,15 +10,15 @@ OBJECTIVE: To prepare a personal loan customer service chatbot for banking domai
 
 
 TEAM MEMBERS:
-  Amit Kumar Shende 
-  Dinesh Ramchandran
-  Gaurav Sharma
-  Nitesh Kumar Upadhyay
-  Piyush Jain
-  Pradeep Nanda
-  Rama Rao Vadlamundi
-  Ranga Surjan Goud
-  Santosh Kumar Thammineni
+  Amit Kumar Shende,
+  Dinesh Ramchandran,
+  Gaurav Sharma,
+  Nitesh Kumar Upadhyay,
+  Piyush Jain,
+  Pradeep Nanda,
+  Rama Rao Vadlamundi,
+  Ranga Surjan Goud,
+  Santosh Kumar Thammineni,
   Vikash Kumar
   
   

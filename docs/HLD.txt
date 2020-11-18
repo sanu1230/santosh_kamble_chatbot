@@ -1,0 +1,69 @@
+HLD(HIGH LEVEL DESIGN)
+
+PRODUCT : AssistBot (A ‘personal loan customer service chatbot’ that provides customer service along with recommending suitable products & does upselling)
+BOT’S OVERALL GOAL:
+AssistBot will be a text- based chatbot which will be upgraded to voice based in it next version, which will be customer service centric with the goal to provide conversational customer service by engaging the user with interactive questions for general and account related query, it will cross-sell other banking products based on recommendation system  and will do upselling.
+
+WORKFLOW:
+Initiating dialogue:
+Our bot will stimulate dialogue with the user and create polite environment to understand the customer query/complain. 
+
+General query:
+It will use conversational data,  FAQ’s data  and  small talks data file in json format and user will be able to query with natural language.
+
+Account related queries:
+Based on the users query the bot will either reply directly with general FAQ’s or ask for the customer Id to further discuss the issue. If user is an existing customer bot will use customer account database which will have all customer account related info in excel.csv format, from which the bot will answer/ resolve the query using Flask/Django API. However initially we will use Tkinter UI for test and trial purpose.
+
+Bot recommendation:
+Once the query is resolved for the existing customer, based on his/her account details, our bot will recommend banks other products using our recommendation model. The recommendation will be based on customer payment history/score/ranking.
+
+Sales Closing:
+If customer interested in any of the product bot will provide the customer the link to the online application to be filled to get the product and update the customers information to the sales department database for manual sales closing.
+
+Closing the Chat:
+If the customer is not interested than it will once again ask for any other assistance if required. If yes then the same procedure follows again. If no further assistance required then it will ask the user to rank its assistance on customer satisfaction the scale of 1 to 10. Based on the users input the bot will either offer alternate solution or live agent (if not satisfied) or close the chat.
+PLAN OF ACTION(HIGH LEVEL):
+1.	Communication Channel selection (will be decided from: [Facebook Messenger, WhatsApp, Web])
+
+2.	Creating Conversational Architect using conversational UI’s where customer can send any text in human language, allowing infinite ways to say the same thing with different words. The NLU component will extract the intent and entities, slot and track in to the dialogue management with API to call database request/URL request and then generate message from predefined templates with placeholders. 
+
+3.	Creating  models for integration: Recommendation model, model to retrieve customer account details, model to check customer satisfaction, model to create session for each end to end conversation with customer name and customer id and a model to keep the customers conversation context & authentication model. 
+
+3.1	Recommendation System Model:
+Recommendation system will help in catering personalized services to bank customer and prospect.
+We will be implementing recommendation system using a dataset artificially created for this project. This data set will contain demographic details of the customer and past purchase history (like Credit card, Saving accounts etc.) and the loan repayment history of the customer.
+For existing customer, it will help in cross selling and for new customers it will help in upselling.
+Product recommender will suggest Top-N product for the existing customer based on customer ID which will be captured using Chatbot.
+For new customer, system will try to understand the taste of the customer by asking few questions related to banking product and based on this input from the customer, it will recommend new product (Basically we will be solving cold start problem here).
+
+3.2	Account Model:
+The Account model will be connected to the account database artificially created for this project. The model will retrieve account information for a particular customer based on its customer id. With the help of this model, our chatbot will provide account related details based on the conversation. (Ex:- next due date, tenure remaining, late charge date and amount, processing fee and date etc.)
+
+3.3	Satisfaction Model:
+The Satisfaction model will try to judge the customer sentiment based on a scale of 1 to 10. If the customer is satisfied it will help the chatbot to move further with the conversation towards closing , If not satisfied, it will trigger chatbot to respond with alternate explanation  or escalation to live agents.
+
+3.4	Session Model:
+The Session Model will pick the entire chat conversation end to end and store/save it in our cloud database(Ex:- Mongodb) with a unique session id, customer name, customer id if existing customer. The data will be stored in json format. This will help our chatbot to understand and remember if the user is the first timer or has spoken to the bot in the past also if the user is approaching for the same query as in the past.
+
+3.5	Context Model:
+The Context model will keep an check on the conversation happening, if the in case the user takes the conversation to a no business topic ( not related to banking product or specific query of the customer) then the chatbot with the help of this model will be able to redirect the customer to the main topic of discussion.
+
+3.6	Authentication Model:
+The Authentication model will authenticate the existing customer with Customer Id and four digit PIN and their DOB. This model will help the bot to securely pull data for the customer from the customer’s account. 
+
+4.	Collecting/Preparing Chat Data: 
+To start with, we will make a general interaction training dataset in ‘intents’ json format which will be as per the business need for banking and finance domain. The training dataset will be professional English language, as it is for customer service.
+
+5.	Framework/platform to be used: Either Microsoft  or Chatfuel or without a specific framework using multiple platforms
+
+6.	Implementing the dialogue flow and engineering the NLU: In this we will bring everything together, the conversational architect, the dialogue flow, the framework selected and the data collected & prepared. The essential task here will be to use these to create a classifier that will map all the incoming text to the systems response.
+
+7.	Integrating Models: Here we will integrate all the model one by one and test its functionality.
+
+8.	Testing and deployment: assessing if the chatbot is capable enough to meet the customers’ needs, do the recommendation, upselling and finally gauge the satisfaction of the customer. Monitoring the entire conversations, collect data, create logs, analyze the data, and keep improving the bot for better conversations.
+
+
+
+Author 
+Santosh Kamble
+

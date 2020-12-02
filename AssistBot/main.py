@@ -18,12 +18,25 @@ from keras.models import Sequential
 from keras.layers import Dense, Activation, Dropout
 from keras.optimizers import SGD
 import random
+import datetime
+from time import sleep
+import pyttsx3 as pp
+import speech_recognition as sp
+import threading
+import pymongo
+from tkinter import *
+import os
+import sys
+import eligibility_class
+
+
 
 
 words = []
 classes = []
 documents = []
 ignore_words = ['?', '!']
+
 data_file = open('intents.json').read()
 intents = json.loads(data_file)
 
@@ -53,7 +66,7 @@ pickle.dump(words,open('words.pkl','wb'))
 pickle.dump(classes,open('classes.pkl','wb'))
 
 
-# initializing training data
+# initializing training data, Creating X and y data (bag and output row)
 training = []
 output_empty = [0] * len(classes)
 for doc in documents:
@@ -71,7 +84,7 @@ for doc in documents:
 # shuffle our features and turn into np.array
 random.shuffle(training)
 training = np.array(training)
-#0 create train and test lists. X - patterns, Y - intents
+# create train and test lists. X - patterns, Y - intents
 train_x = list(training[:,0])
 train_y = list(training[:,1])
 print("Training data created")
@@ -106,7 +119,6 @@ classes = pickle.load(open('classes.pkl','rb'))
 
 # Once again, we need to extract the information from our files.
 
-
 def clean_up_sentence(sentence):
     sentence_words = nltk.word_tokenize(sentence)
     sentence_words = [lemmatizer.lemmatize(word.lower()) for word in sentence_words]
@@ -134,7 +146,7 @@ def predict_class(sentence, model):
     # filter out predictions below a threshold
     p = bow(sentence, words, show_details=False)
     res = model.predict(np.array([p]))[0]
-    ERROR_THRESHOLD = 0.5
+    ERROR_THRESHOLD = 0.9
     results = [[i, r] for i, r in enumerate(res) if r > ERROR_THRESHOLD]
     # sort by strength of probability
     results.sort(key=lambda x: x[1], reverse=True)
@@ -144,79 +156,215 @@ def predict_class(sentence, model):
     return return_list
 
 
-def getResponse(ints, intents_json):
-    tag = ints[0]['intent']
+context = {}
+
+
+def getResponse(ints, userID, intents_json):
+    if ints == []:
+        tag = 'defaultfallback'
+    else:
+        tag = ints[0]['intent']
+
     list_of_intents = intents_json['intents']
     for i in list_of_intents:
         if(i['tag'] == tag):
-            result = random.choice(i['responses'])
-            break
+            if 'context_set' in i:
+                context[userID] = i['context_set']
+            if not 'context_filter' in i or \
+                    (userID in context and 'context_filter' in i and i['context_filter'] == context[userID]):
+                result = random.choice(i['responses'])
     return result
 
+def pushmsg(msg):
+    ChatLog.config(state=NORMAL)
+    ChatLog.insert(END, "AssistBot: " + msg + '\n\n')
+    ChatLog.config(state=DISABLED)
+    speak(msg)
 
-def chatbot_response(msg):
-    ints = predict_class(msg, model)
-    res = getResponse(ints, intents)
-    return res
+def entermsg():
+    EntryBox.delete(0, END)
+    if EntryBox.get() != '':
+        userMessage = EntryBox.get()
+    return userMessage
 
+user = []
+bot = []
+def init():
+    global globallist
+    globallist = [user, bot]
 
-def send():
-    msg = EntryBox.get("1.0", 'end-1c').strip()
-    EntryBox.delete("0.0", END)
+def chatbot_response():
+    query = EntryBox.get().strip()
+    EntryBox.delete(0, END)
+    init(
+    if query != '':
+        # Session Recording
+        # Resetting lastReplyTime
+        global lastReplyTime
+        c = datetime.datetime.now()
+        current_time = (c.hour * 60 * 60) + (c.minute * 60) + c.second
+        lastReplyTime = current_time
 
-    if msg != '':
+    def enterquery():
         ChatLog.config(state=NORMAL)
-        ChatLog.insert(END, "You: " + msg + '\n\n')
-        ChatLog.config(foreground="#442265", font=("Verdana", 12))
-
-        res = chatbot_response(msg)
-        ChatLog.insert(END, "Bot: " + res + '\n\n')
-
+        ChatLog.insert(END, "You: " + query + '\n\n')
         ChatLog.config(state=DISABLED)
+        # Recording user response
+        user.append(str(query))
+
+    def enterresponse():
+        userID = '123'
+        ints = predict_class(query, model)
+        response = getResponse(ints, userID, intents)
+        bot.append(str(response))
+        ChatLog.config(state=NORMAL)
+        ChatLog.insert(END, "AssistBot: " + response + '\n\n')
+        ChatLog.config(state=DISABLED)
+        EntryBox.delete(0, END)
         ChatLog.yview(END)
+        speak(response)
+
+    enterquery()
+    enterresponse()
 
 
-# Creating GUI with tkinter
-from tkinter import *
+def ideal(uniqueSessionId):
+    global lastReplyTime
+    global customerId
+    init()
+    customerId = random.random()
+    c = datetime.datetime.now()
+    StartTime = c
+    lastReplyTime = (c.hour * 60 * 60) + (c.minute * 60) + c.second
+    print("uniqueSessionId : ",uniqueSessionId)
+    while True:
+        c = datetime.datetime.now()
+        current_time = (c.hour * 60 * 60) + (c.minute * 60) + c.second
+        print("While lastReplyTime:",lastReplyTime,current_time)
+        sleep(1)
+        if (lastReplyTime + 10 <= current_time):
+            print("ideal")
+            DEFAULT_CONNECTION_URL = "mongodb://localhost:27017/"
+            DB_NAME = "Metadata"
+            client = pymongo.MongoClient(DEFAULT_CONNECTION_URL)
+            dataBase = client[DB_NAME]
+            COLLECTION_NAME = "Session_Info"
+            collection = dataBase[COLLECTION_NAME]
+            record = {'SessionId': uniqueSessionId,
+                      'StartTime': StartTime,
+                      'EndTime': datetime.datetime.now(),
+                      'CustomerId': customerId,
+                      'CustomerStatus': 'Active',
+                      'DataFileName': 'abc.txt'}
+            collection.insert_one(record)
+            COLLECTION_NAME = "Session_Data"
+            collection = dataBase[COLLECTION_NAME]
+            record2 = {'SessionId': uniqueSessionId,
+                      'CustomerId': customerId,
+                      'UserConv': user,
+                      'BotResp': bot,
+                    }
+            collection.insert_one(record2)
+            break
 
-base = Tk()
-base.title("BankBot")
-base.geometry("350x510")
-base.resizable(width=True, height=True)
 
-# Create Chat window
-ChatLog = Text(base, bd=0, bg="white", height="8", width="50", font="Arial",)
+def session():
+    c = datetime.datetime.now()
+    current_time = (c.hour * 60 * 60) + (c.minute * 60) + c.second + c.microsecond
+    uniqueSessionId = current_time
+    t1 = threading.Thread(target=ideal,args=(uniqueSessionId,))
+    t1.start()
+
+# Initializing session
+session()
+
+
+# ---------------------------------- For Voice -------------------------------- ##
+engine = pp.init()
+
+voices = engine.getProperty('voices')  # get all voices
+engine.setProperty('voice', voices[1].id)
+
+
+def speak(word):
+    engine.say(word)
+    engine.runAndWait()
+
+
+def speech_query():
+    sr = sp.Recognizer()
+    sr.pause_threshold=1
+    with sp.Microphone() as m:
+        try:
+            audio = sr.listen(m)
+            query = sr.recognize_google(audio, language="eng-in")
+            EntryBox.delete(0, END)
+            EntryBox.insert(0, query)
+            chatbot_response()
+        except Exception as e:
+            print(e)
+            print("not recognize")
+
+
+#-----------------------------GUI-------------------------------------#
+
+main = Tk()
+main.geometry("350x650")
+main.resizable(width=True, height=True)
+main.title("AssistBot")
+
+
+img = PhotoImage(file="images.png")
+photoL = Label(main, image=img)
+photoL.pack(pady=5)
+
+frame = Frame(main)
+frame.pack()
+
+# Creating a message box in frame
+ChatLog = Text(frame, bd=0, bg="white", height="15", width="35", font="Bahnschrift", wrap=WORD)
+ChatLog.pack(side=LEFT, fill=BOTH, pady=10)
 ChatLog.config(state=DISABLED)
 
-#  Bind scrollbar to Chat window
-scrollbar = Scrollbar(base, command=ChatLog.yview, cursor="heart")
-ChatLog['yscrollcommand'] = scrollbar.set
+# Creating scrollbar in frame
+sc = Scrollbar(frame, command=ChatLog.yview)
+ChatLog['yscrollcommand'] = sc.set
+sc.pack(side=RIGHT, fill=Y)
 
+# Creating text field
+EntryBox = Entry(main, width="23", font=("Bahnschrift", 20))
+EntryBox.pack(pady=10)
 
-# Create Button to send message
-SendButton = Button(base, font=("Verdana", 12, 'bold'), text="Send", width="12", height=2,
-                    bd=0, bg="#32de97", activebackground="#3c9d9b", fg='#ffffff', command= send )
-
-# Create the box to enter message
-EntryBox = Text(base, bd=0, bg="white", width="29", height="5", font="Arial", )
-# EntryBox.bind("<Return>", send)
-
-# Place all components on the screen
-scrollbar.place(x=335, y=5, height=445, width=10)
-ChatLog.place(x=5, y=5, height=445, width=330)
-ChatLog.config(state=NORMAL)
-ChatLog.insert(END, "Bot: Welcome.!\nI am AssistBot,\nyour customer service assistant\nfor personal loan.\nHow may I help you.\n\n")
-ChatLog.yview(END)
-ChatLog.config(state=DISABLED)
-EntryBox.place(x=130, y=455, height=50, width=210)
-SendButton.place(x=5, y=455, height=50)
+# Creating button
+btn = Button(main, text="Send", width="30", font=("Bahnschrift", 15), command=chatbot_response)
+btn.pack()
 
 
 def enter_function(event):
-    SendButton.invoke()
+    btn.invoke()
 
 
 # going to bind main window with enter key
-base.bind('<Return>', enter_function)
+main.bind('<Return>', enter_function)
 
-base.mainloop()
+
+def repeatl():
+    while True:
+        speech_query()
+
+
+def intro():
+    intro = "Hi, I am AssistBot. Your customer service agent. How may I help you?"
+    ChatLog.config(state=NORMAL)
+    ChatLog.insert(END, "AssistBot: " + intro + '\n\n')
+    ChatLog.config(state=DISABLED)
+    speak(intro)
+
+
+r = threading.Thread(target=repeatl)
+r.start()
+n = threading.Thread(target=intro)
+n.start()
+
+main.mainloop()
+
